@@ -1,856 +1,116 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <!-- iPadの「ホーム画面に追加」でアプリのように全画面表示するための設定 -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="てじゅんひょう">
-  <title>きょうの よてい（てじゅんひょう）</title>
-  <style>
-    /* ==========================================================================
-       UD（ユニバーサルデザイン）配色・基本設計
-       外部フォントを使わず、iPad標準の丸ゴシック（ヒラギノ丸ゴ）を優先指定
-       ========================================================================== */
-    :root {
-      --bg-page: #fdfbf5;
-      --bg-card: #ffffff;
-      --bg-card-active: #fffbeb;
-      --bg-card-done: #f1f5f9;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --text-done: #94a3b8;
-      --border-default: #e2e8f0;
-      --border-active: #f59e0b;
-      --accent-orange: #ea580c;
-      --accent-blue: #0284c7;
-      --accent-green: #16a34a;
-      --accent-red: #dc2626;
-      --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.06);
-      --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
-      --shadow-active: 0 8px 24px rgba(245, 158, 11, 0.22);
-      --radius-lg: 20px;
-      --radius-md: 14px;
-      --radius-sm: 10px;
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100%;
-      background-color: var(--bg-page);
-      color: var(--text-main);
-      font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo", -apple-system, BlinkMacSystemFont, sans-serif;
-      /* 誤操作による文字選択・ダブルタップ拡大を防止 */
-      -webkit-user-select: none;
-      user-select: none;
-      touch-action: manipulation;
-      line-height: 1.5;
-    }
-
-    /* 入力欄だけは文字選択・入力を許可 */
-    input, textarea {
-      -webkit-user-select: text;
-      user-select: text;
-      font-family: inherit;
-    }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-      background: none;
-      touch-action: manipulation;
-    }
-
-    /* ==========================================================================
-       ヘッダー
-       ========================================================================== */
-    .app-header {
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 18px;
-      background-color: rgba(253, 251, 245, 0.94);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-bottom: 2px solid #efe9d8;
-    }
-
-    .app-title {
-      margin: 0;
-      font-size: clamp(1.2rem, 2.6vw, 1.65rem);
-      font-weight: 800;
-      color: #334155;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      letter-spacing: 0.03em;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    .btn-header {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      min-height: 46px;
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      border: 2px solid var(--border-default);
-      background-color: #ffffff;
-      color: var(--text-main);
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.1s ease, background-color 0.15s ease;
-    }
-
-    .btn-header:active {
-      transform: scale(0.96);
-    }
-
-    .btn-sound.is-on {
-      background-color: #eff6ff;
-      border-color: #93c5fd;
-      color: #1d4ed8;
-    }
-
-    .btn-sound.is-off {
-      background-color: #f1f5f9;
-      border-color: #cbd5e1;
-      color: #64748b;
-    }
-
-    .btn-teacher {
-      background-color: #f8fafc;
-      border-color: #cbd5e1;
-      color: #475569;
-    }
-
-    /* ==========================================================================
-       メインレイアウト（縦向き1カラム / iPad横向き2カラム）
-       ========================================================================== */
-    .app-main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 18px 16px 40px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-      align-items: start;
-    }
-
-    @media (min-width: 880px) {
-      .app-main {
-        grid-template-columns: 320px 1fr;
-        padding: 24px 24px 48px;
-        gap: 26px;
-      }
-      .timer-panel {
-        position: sticky;
-        top: 86px;
-      }
-    }
-
-    /* ==========================================================================
-       かんたん視覚タイマー
-       ========================================================================== */
-    .timer-panel {
-      background-color: var(--bg-card);
-      border: 2px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      padding: 18px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .timer-panel.is-finished {
-      border-color: var(--accent-red);
-      background-color: #fef2f2;
-      animation: timerPulse 0.8s ease-in-out 3;
-    }
-
-    @keyframes timerPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.015); }
-    }
-
-    .timer-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .timer-label {
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: #475569;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .timer-status-badge {
-      font-size: 0.8rem;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 999px;
-      background-color: #f1f5f9;
-      color: #64748b;
-    }
-
-    .timer-status-badge.running {
-      background-color: #dcfce7;
-      color: #15803d;
-    }
-
-    .timer-status-badge.finished {
-      background-color: #fee2e2;
-      color: #b91c1c;
-    }
-
-    .timer-display {
-      text-align: center;
-      font-size: clamp(2.4rem, 5vw, 3.2rem);
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      font-variant-numeric: tabular-nums;
-      color: var(--text-main);
-      margin: 4px 0 12px;
-      line-height: 1.1;
-    }
-
-    .timer-bar-track {
-      width: 100%;
-      height: 22px;
-      background-color: #e2e8f0;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-bottom: 14px;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
-    }
-
-    .timer-bar-fill {
-      height: 100%;
-      width: 100%;
-      border-radius: 999px;
-      background-color: #22c55e;
-      transition: width 0.25s linear, background-color 0.4s ease;
-    }
-
-    .timer-presets {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .btn-preset {
-      min-height: 46px;
-      border-radius: var(--radius-sm);
-      background-color: #f8fafc;
-      border: 2px solid #cbd5e1;
-      color: #334155;
-      font-size: 1rem;
-      font-weight: 800;
-      transition: all 0.12s ease;
-    }
-
-    .btn-preset.is-selected {
-      background-color: #e0f2fe;
-      border-color: #38bdf8;
-      color: #0369a1;
-    }
-
-    .btn-preset:active {
-      transform: scale(0.96);
-    }
-
-    .timer-controls {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 10px;
-    }
-
-    .btn-timer-main {
-      min-height: 52px;
-      border-radius: var(--radius-md);
-      background-color: var(--accent-blue);
-      color: #ffffff;
-      font-size: 1.08rem;
-      font-weight: 800;
-      box-shadow: 0 3px 0 #0369a1;
-      transition: transform 0.1s ease, background-color 0.15s ease;
-    }
-
-    .btn-timer-main.is-running {
-      background-color: #f59e0b;
-      box-shadow: 0 3px 0 #b45309;
-    }
-
-    .btn-timer-main:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-timer-reset {
-      min-height: 52px;
-      border-radius: var(--radius-md);
-      background-color: #f1f5f9;
-      border: 2px solid #cbd5e1;
-      color: #475569;
-      font-size: 1rem;
-      font-weight: 800;
-    }
-
-    .btn-timer-reset:active {
-      transform: scale(0.96);
-    }
-
-    /* ==========================================================================
-       お祝いバナー（すべて完了時）
-       ========================================================================== */
-    .celebration-banner {
-      display: none;
-      margin-bottom: 18px;
-      padding: 20px 22px;
-      border-radius: var(--radius-lg);
-      background: linear-gradient(135deg, #fef08a 0%, #fed7aa 100%);
-      border: 3px solid #f59e0b;
-      text-align: center;
-      box-shadow: var(--shadow-md);
-      animation: popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .celebration-banner.is-visible {
-      display: block;
-    }
-
-    .celebration-text {
-      margin: 0;
-      font-size: clamp(1.3rem, 3vw, 1.8rem);
-      font-weight: 900;
-      color: #9a3412;
-    }
-
-    @keyframes popIn {
-      0% { opacity: 0; transform: scale(0.92); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-
-    /* ==========================================================================
-       スケジュール（手順カード一覧）
-       ========================================================================== */
-    .schedule-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .empty-message {
-      text-align: center;
-      padding: 40px 20px;
-      background-color: #ffffff;
-      border: 2px dashed #cbd5e1;
-      border-radius: var(--radius-lg);
-      color: var(--text-muted);
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-
-    .step-card {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      min-height: 112px;
-      padding: 16px 18px;
-      background-color: var(--bg-card);
-      border: 3px solid var(--border-default);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      cursor: pointer;
-      transition: transform 0.12s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .step-card:active {
-      transform: scale(0.985);
-    }
-
-    /* 現在のステップ（「いま」）の強調スタイル */
-    .step-card.is-current {
-      background-color: var(--bg-card-active);
-      border-color: var(--border-active);
-      border-width: 4px;
-      box-shadow: var(--shadow-active);
-    }
-
-    /* 完了したステップ（「おわり」）のスタイル */
-    .step-card.is-done {
-      background-color: var(--bg-card-done);
-      border-color: #cbd5e1;
-      box-shadow: none;
-    }
-
-    .step-card.is-done .step-visual,
-    .step-card.is-done .step-title-text,
-    .step-card.is-done .step-number {
-      opacity: 0.45;
-    }
-
-    .step-card.is-done .step-title-text {
-      text-decoration: line-through;
-      color: var(--text-done);
-    }
-
-    /* 「いま」バッジ */
-    .now-badge {
-      position: absolute;
-      top: -14px;
-      left: 18px;
-      background-color: var(--accent-orange);
-      color: #ffffff;
-      font-size: 0.95rem;
-      font-weight: 900;
-      padding: 3px 16px;
-      border-radius: 999px;
-      box-shadow: 0 3px 8px rgba(234, 88, 12, 0.35);
-      letter-spacing: 0.08em;
-    }
-
-    /* 番号バッジ */
-    .step-number {
-      flex-shrink: 0;
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background-color: #f1f5f9;
-      color: #334155;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 900;
-    }
-
-    .step-card.is-current .step-number {
-      background-color: var(--border-active);
-      color: #ffffff;
-    }
-
-    /* 絵文字 または 取り込んだ写真 */
-    .step-visual {
-      flex-shrink: 0;
-      width: 74px;
-      height: 74px;
-      border-radius: var(--radius-md);
-      background-color: #f8fafc;
-      border: 2px solid #e2e8f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.6rem;
-      overflow: hidden;
-    }
-
-    .step-visual img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    /* 手順タイトル */
-    .step-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .step-title-text {
-      margin: 0;
-      font-size: clamp(1.25rem, 2.8vw, 1.7rem);
-      font-weight: 800;
-      color: var(--text-main);
-      word-break: break-word;
-      line-height: 1.35;
-    }
-
-    /* カード右側のアクション領域（読み上げボタン） */
-    .step-right {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      z-index: 2;
-    }
-
-    .btn-speak {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background-color: #eff6ff;
-      border: 2px solid #bfdbfe;
-      color: #1d4ed8;
-      font-size: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.1s ease, background-color 0.15s ease;
-    }
-
-    .btn-speak:active {
-      transform: scale(0.92);
-      background-color: #dbeafe;
-    }
-
-    .btn-speak.is-speaking {
-      background-color: #3b82f6;
-      border-color: #2563eb;
-      color: #ffffff;
-      transform: scale(1.06);
-    }
-
-    /* 「💮 おわり！」スタンプ */
-    .done-stamp {
-      display: none;
-      position: absolute;
-      right: 84px;
-      top: 50%;
-      transform: translateY(-50%) rotate(-8deg);
-      padding: 6px 16px;
-      border-radius: 14px;
-      border: 4px solid #ef4444;
-      background-color: rgba(255, 255, 255, 0.94);
-      color: #dc2626;
-      font-size: clamp(1.15rem, 2.5vw, 1.5rem);
-      font-weight: 900;
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.18);
-      pointer-events: none;
-      z-index: 3;
-      white-space: nowrap;
-    }
-
-    .step-card.is-done .done-stamp {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      animation: stampPop 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    @keyframes stampPop {
-      0% { opacity: 0; transform: translateY(-50%) scale(1.5) rotate(-14deg); }
-      100% { opacity: 1; transform: translateY(-50%) scale(1) rotate(-8deg); }
-    }
-
-    @media (max-width: 540px) {
-      .step-card {
-        padding: 14px 12px;
-        gap: 12px;
-        min-height: 98px;
-      }
-      .step-number {
-        width: 34px;
-        height: 34px;
-        font-size: 1.05rem;
-      }
-      .step-visual {
-        width: 58px;
-        height: 58px;
-        font-size: 2rem;
-      }
-      .btn-speak {
-        width: 48px;
-        height: 48px;
-        font-size: 1.3rem;
-      }
-      .done-stamp {
-        right: 66px;
-        padding: 4px 10px;
-      }
-    }
-
-    /* ==========================================================================
-       先生用メニュー（モーダル）
-       ========================================================================== */
-    .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      background-color: rgba(15, 23, 42, 0.55);
-      padding: 16px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .modal-backdrop.is-open {
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-    }
-
-    .teacher-modal {
-      width: 100%;
-      max-width: 680px;
-      margin: 16px auto;
-      background-color: #ffffff;
-      border-radius: var(--radius-lg);
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
-      overflow: hidden;
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      background-color: #f8fafc;
-      border-bottom: 2px solid var(--border-default);
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: #1e293b;
-    }
-
-    .btn-close-modal {
-      min-height: 44px;
-      padding: 6px 16px;
-      border-radius: 999px;
-      background-color: #e2e8f0;
-      color: #334155;
-      font-size: 1rem;
-      font-weight: 800;
-    }
-
-    .modal-body {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .teacher-section {
-      border: 2px solid #e2e8f0;
-      border-radius: var(--radius-md);
-      padding: 16px;
-      background-color: #fcfcfd;
-    }
-
-    .teacher-section h3 {
-      margin: 0 0 12px;
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: #334155;
-    }
-
-    .quick-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .btn-action {
-      min-height: 48px;
-      padding: 10px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 0.98rem;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .btn-action-primary {
-      background-color: var(--accent-blue);
-      color: #ffffff;
-    }
-
-    .btn-action-warn {
-      background-color: #fff7ed;
-      border: 2px solid #fdba74;
-      color: #c2410c;
-    }
-
-    .btn-action-subtle {
-      background-color: #f1f5f9;
-      border: 2px solid #cbd5e1;
-      color: #475569;
-    }
-
-    /* 手順追加フォーム */
-    .form-group {
-      margin-bottom: 14px;
-    }
-
-    .form-label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: #475569;
-    }
-
-    .text-input {
-      width: 100%;
-      min-height: 48px;
-      padding: 10px 14px;
-      border: 2px solid #cbd5e1;
-      border-radius: var(--radius-sm);
-      font-size: 1.05rem;
-      color: var(--text-main);
-      background-color: #ffffff;
-    }
-
-    .text-input:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-    }
-
-    .emoji-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .btn-emoji-choice {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-sm);
-      border: 2px solid #e2e8f0;
-      background-color: #ffffff;
-      font-size: 1.55rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .btn-emoji-choice.is-selected {
-      border-color: var(--accent-blue);
-      background-color: #e0f2fe;
-      transform: scale(1.06);
-    }
-
-    .photo-picker-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .file-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 46px;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      background-color: #f0fdf4;
-      border: 2px solid #86efac;
-      color: #15803d;
-      font-size: 0.95rem;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .file-input-hidden {
-      display: none;
-    }
-
-    .photo-preview-box {
-      display: none;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .photo-preview-box.has-photo {
-      display: inline-flex;
-    }
-
-    .photo-preview-img {
-      width: 56px;
-      height: 56px;
-      border-radius: 10px;
-      object-fit: cover;
-      border: 2px solid #cbd5e1;
-    }
-
-    /* 手順の並び替え・削除リスト */
-    .manage-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .manage-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      background-color: #ffffff;
-      border: 2px solid #e2e8f0;
-      border-radius: var(--radius-sm);
-    }
-
-    .manage-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background-color: #f8fafc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .manage-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .manage-title {
-      flex: 1;
-      min-width: 0;
-      font-size: 0.98rem;
-      font-weight: 700;
-      word-break: break-word;
-    }
-
-    .manage-btns {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .btn-mini {
-      min-width: 42px;
-      min-height: 42px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 2px solid #cbd5e1;
-      background-color: #f8fafc;
-      color: #334155;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>きょうの よてい</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #fdfbf5; color: #1e293b; margin: 0; padding: 16px; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  h1 { font-size: 1.4rem; margin: 0; }
+  button { font-size: 1rem; padding: 10px 14px; border-radius: 10px; border: 2px solid #cbd5e1; background: #fff; font-weight: bold; }
+  .card { display: flex; align-items: center; gap: 12px; background: #fff; border: 3px solid #cbd5e1; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+  .card.active { border-color: #f59e0b; background: #fffbeb; }
+  .card.done { background: #f1f5f9; border-color: #94a3b8; opacity: 0.65; }
+  .card.done .title { text-decoration: line-through; }
+  .icon { font-size: 2rem; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #f8fafc; overflow: hidden; flex-shrink: 0; }
+  .icon img { width: 100%; height: 100%; object-fit: cover; }
+  .title { font-size: 1.3rem; font-weight: bold; flex: 1; }
+  .stamp { color: #16a34a; font-weight: bold; font-size: 1.1rem; }
+  .timer-box { background: #e0f2fe; padding: 12px; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  #timer-text { font-size: 1.5rem; font-weight: bold; }
+  #edit-area { display: none; background: #fff; border: 2px solid #94a3b8; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  input[type="text"] { font-size: 1rem; padding: 8px; width: 65%; border: 2px solid #cbd5e1; border-radius: 8px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>📅 きょうの よてい</h1>
+    <div>
+      <button onclick="resetAll()">🔄 リセット</button>
+      <button onclick="toggleEdit()">⚙️ せんせい</button>
+    </div>
+  </header>
+
+  <div class="timer-box">
+    <span id="timer-text">⏱ 03:00</span>
+    <div>
+      <button onclick="startTimer()">スタート</button>
+      <button onclick="resetTimer()">もどす</button>
+    </div>
+  </div>
+
+  <div id="edit-area">
+    <p style="margin-top:0;font-weight:bold;">＋ てじゅんを ついか（写真もOK）</p>
+    <input type="text" id="new-title" placeholder="れい：さかなつり">
+    <button onclick="addItem()">ついか</button>
+    <div style="margin-top:8px;"><input type="file" id="new-img" accept="image/*"></div>
+  </div>
+
+  <div id="list"></div>
+
+<script>
+  const KEY = 'schedule_test_v1';
+  let items = JSON.parse(localStorage.getItem(KEY)) || [
+    { title: 'はじまり・あいさつ', icon: '👋', done: false },
+    { title: 'さかなつり', icon: '🎣', done: false },
+    { title: 'ふりかえり・おわり', icon: '💮', done: false }
+  ];
+  let sec = 180, tid = null;
+
+  function save() { localStorage.setItem(KEY, JSON.stringify(items)); }
+  function speak(text) {
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP';
+    speechSynthesis.speak(u);
+  }
+  function render() {
+    const el = document.getElementById('list');
+    el.innerHTML = '';
+    const nextIdx = items.findIndex(i => !i.done);
+    items.forEach((item, idx) => {
+      const div = document.createElement('div');
+      div.className = 'card' + (item.done ? ' done' : (idx === nextIdx ? ' active' : ''));
+      div.onclick = () => { item.done = !item.done; save(); render(); if (item.done) speak(item.title + '、おわり！'); };
+      const iconHtml = item.img ? `<img src="${item.img}">` : (item.icon || '⭐');
+      div.innerHTML = `<div class="icon">${iconHtml}</div><div class="title">${item.title}</div>` +
+        (item.done ? '<span class="stamp">💮おわり</span>' : `<button onclick="event.stopPropagation();speak('${item.title}')">🔊</button>`);
+      el.appendChild(div);
+    });
+  }
+  function resetAll() { items.forEach(i => i.done = false); save(); render(); }
+  function toggleEdit() { const e = document.getElementById('edit-area'); e.style.display = e.style.display === 'block' ? 'none' : 'block'; }
+  function addItem() {
+    const t = document.getElementById('new-title').value.trim();
+    if (!t) return;
+    const f = document.getElementById('new-img').files[0];
+    if (f) {
+      const r = new FileReader();
+      r.onload = () => { items.push({ title: t, img: r.result, done: false }); save(); render(); };
+      r.readAsDataURL(f);
+    } else {
+      items.push({ title: t, icon: '⭐', done: false }); save(); render();
+    }
+    document.getElementById('new-title').value = '';
+    document.getElementById('new-img').value = '';
+  }
+  function updateTimer() {
+    const m = String(Math.floor(sec / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    document.getElementById('timer-text').textContent = `⏱ ${m}:${s}`;
+  }
+  function startTimer() {
+    if (tid) { clearInterval(tid); tid = null; return; }
+    tid = setInterval(() => {
+      if (sec > 0) { sec--; updateTimer(); }
+      else { clearInterval(tid); tid = null; speak('じかんになりました'); }
+    }, 1000);
+  }
+  function resetTimer() { clearInterval(tid); tid = null; sec = 180; updateTimer(); }
+  render();
+</script>
+</body>
+</html>
